@@ -46,7 +46,7 @@ frontend:
     tls:
       termination: edge
 vault:
-  address: "https://vault.apps.c1.ucmc.org"
+  address: "http://vault1.ucmcswg.com:8200"
   connectionName: "vault-connection"
   authName: "vault-auth"
   role: "with-vault-prod-app-role"

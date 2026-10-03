@@ -6,9 +6,3 @@ metadata:
 spec:
   address: {{ .Values.vault.address | quote }}
   skipTLSverify: true
-  # {{- if .Values.vault.caProvider }}
-  # caProvider:
-  #   type: {{ .Values.vault.caProvider.type }}
-  #   name: {{ .Values.vault.caProvider.name }}
-  #   key: {{ .Values.vault.caProvider.key }}
-  # {{- end }}
