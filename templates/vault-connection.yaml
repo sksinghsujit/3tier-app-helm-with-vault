@@ -1,0 +1,14 @@
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultConnection
+metadata:
+  name: {{ .Values.vault.connectionName | default "vault-connection" }}
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+spec:
+  address: {{ .Values.vault.address | quote }}
+  skipTLSverify: true
+  # {{- if .Values.vault.caProvider }}
+  # caProvider:
+  #   type: {{ .Values.vault.caProvider.type }}
+  #   name: {{ .Values.vault.caProvider.name }}
+  #   key: {{ .Values.vault.caProvider.key }}
+  # {{- end }}

@@ -1,0 +1,60 @@
+global:
+  namespace: "with-vault-app-prod"
+# Database Configuration
+postgresql:
+  enabled: true
+  name: postgres
+  image: registry.redhat.io/rhel9/postgresql-15:latest
+  database: appdb
+  username: appuser
+  # password: "XXXXXXXXXXXXXXXXXXXXX!" # In production, pull from Vault or SealedSecret
+  storageSize: 5Gi
+  port: 5432
+  storageClassName: ocs-storagecluster-ceph-rbd
+# Backend API Configuration
+backend:
+  name: backend-api
+  replicas: 2
+  port: 8080
+  image:
+    repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/backend-api"
+    tag: "latest"
+  git:
+    uri: "https://github.com/sksinghsujit/3tier-app-backend-service-with-vault.git"
+    ref: "main"
+    contextDir: "/"
+  env:
+    DB_HOST: "postgres"
+    DB_PORT: "5432"
+    DB_NAME: "appdb"
+    DB_USER: "appuser"
+# Frontend Web App Configuration
+frontend:
+  name: frontend-web
+  replicas: 2
+  port: 8080
+  image:
+    repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/frontend-api"
+    tag: "latest"
+  git:
+    uri: "https://github.com/sksinghsujit/3tier-app-frontend-service-with-vault.git" 
+    ref: "main"
+    contextDir: "/"
+  route:
+    enabled: true
+    host: "with-vault-app-prod.apps.c1.ucmc.org" # Replace with your cluster domain
+    tls:
+      termination: edge
+vault:
+  address: "https://vault.apps.c1.ucmc.org"
+  connectionName: "vault-connection"
+  authName: "vault-auth"
+  role: "with-vault-prod-app-role"
+  serviceAccount: "default"
+  kubernetesAuthMount: "kubernetes"
+  kvMount: "secret"
+  refreshInterval: "1m"
+  secrets:
+    databasePath: "prod/database"
+    githubPath: "prod/github"
+    sonarqubePath: "prod/sonarqube"

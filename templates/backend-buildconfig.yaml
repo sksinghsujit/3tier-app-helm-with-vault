@@ -1,0 +1,36 @@
+# pipeline stages already build the images
+# Uncomment if you want these to be done manually
+
+
+
+# apiVersion: image.openshift.io/v1
+# kind: ImageStream
+# metadata:
+#   name: {{ .Values.backend.name }}
+# ---
+# apiVersion: build.openshift.io/v1
+# kind: BuildConfig
+# metadata:
+#   name: {{ .Values.backend.name }}
+# spec:
+#   source:
+#     type: Git
+#     git:
+#       uri: {{ .Values.backend.git.uri }}
+#       ref: {{ .Values.backend.git.ref }}
+#     contextDir: {{ .Values.backend.git.contextDir }}
+#   strategy:
+#     type: Source
+#     sourceStrategy:
+#       from:
+#         kind: DockerImage
+#         name: registry.redhat.io/ubi9/nodejs-22:latest # Adjust runtime language/builder image
+#   output:
+#     to:
+#       kind: ImageStreamTag
+#       name: "{{ .Values.backend.name }}:latest"
+#   triggers:
+#     - type: ConfigChange
+#     - type: GitHub
+#       github:
+#         secret: WebhookSecret123
