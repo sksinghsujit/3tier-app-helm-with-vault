@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.backend.name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   ports:
     - port: {{ .Values.backend.port }}

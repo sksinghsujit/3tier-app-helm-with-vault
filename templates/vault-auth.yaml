@@ -3,6 +3,8 @@ kind: VaultAuth
 metadata:
   name: {{ .Values.vault.authName | default "vault-auth" }}
   namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   method: kubernetes
   mount: {{ .Values.vault.kubernetesAuthMount | default "kubernetes" | quote }}

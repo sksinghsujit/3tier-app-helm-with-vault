@@ -3,6 +3,8 @@ kind: VaultConnection
 metadata:
   name: {{ .Values.vault.connectionName | default "vault-connection" }}
   namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   address: {{ .Values.vault.address | quote }}
   skipTLSverify: true
