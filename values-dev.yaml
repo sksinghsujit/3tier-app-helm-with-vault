@@ -18,7 +18,7 @@ backend:
   port: 8080
   image:
     repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/backend-api"
-    tag: "9f58e7ce09fd193dece76536c32b1cbf4c071a12"
+    tag: "latest"
   git:
     uri: "https://github.com/sksinghsujit/3tier-app-backend-service-with-vault.git"
     ref: "main"
