@@ -18,7 +18,7 @@ backend:
   port: 8080
   image:
     repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/backend-api"
-    tag: "latest"
+    tag: "8fd76b9700d569ad0b3fec73ae1d4642127f8aec"
   git:
     uri: "https://github.com/sksinghsujit/3tier-app-backend-service-with-vault.git"
     ref: "main"
@@ -35,9 +35,9 @@ frontend:
   port: 8080
   image:
     repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/frontend-api"
-    tag: "latest"
+    tag: "cb9f52eb7c851d528befed415fdee362357e41cd"
   git:
-    uri: "https://github.com/sksinghsujit/3tier-app-frontend-service-with-vault.git" 
+    uri: "https://github.com/sksinghsujit/3tier-app-frontend-service-with-vault.git"
     ref: "main"
     contextDir: "/"
   route:
