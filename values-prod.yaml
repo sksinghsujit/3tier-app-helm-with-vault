@@ -34,7 +34,7 @@ frontend:
   replicas: 2
   port: 8080
   image:
-    repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/frontend-api"
+    repository: "image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/frontend-web"
     tag: "cb9f52eb7c851d528befed415fdee362357e41cd"
   git:
     uri: "https://github.com/sksinghsujit/3tier-app-frontend-service-with-vault.git"
