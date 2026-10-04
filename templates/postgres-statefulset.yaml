@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: {{ .Values.postgresql.name }}
-  annotations:
-    argocd.argoproj.io/sync-wave: "3"
 spec:
   serviceName: {{ .Values.postgresql.name }}
   replicas: 1
