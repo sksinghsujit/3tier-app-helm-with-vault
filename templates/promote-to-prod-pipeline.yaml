@@ -1,0 +1,72 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: promote-to-prod
+spec:
+  params:
+    - name: BACKEND_IMAGE_TAG
+      type: string
+    - name: FRONTEND_IMAGE_TAG
+      type: string
+    - name: HELM_REPO_URL
+      type: string
+      default: "https://github.com/sksinghsujit/3tier-app-helm.git"
+  workspaces:
+    - name: source-workspace
+    - name: git-credentials
+  tasks:
+    # --------------------------------------------------------
+    # STEP 1A: MIRROR BACKEND IMAGE TO APP-PROD
+    # --------------------------------------------------------
+    - name: promote-backend-image
+      taskRef:
+        kind: Task
+        name: openshift-client
+      params:
+        - name: SCRIPT
+          value: |
+            oc image mirror \
+              image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/backend-api:$(params.BACKEND_IMAGE_TAG) \
+              image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/backend-api:$(params.BACKEND_IMAGE_TAG) \
+              --insecure=true
+
+    # --------------------------------------------------------
+    # STEP 1B: MIRROR FRONTEND IMAGE TO APP-PROD
+    # --------------------------------------------------------
+    - name: promote-frontend-image
+      taskRef:
+        kind: Task
+        name: openshift-client
+      params:
+        - name: SCRIPT
+          value: |
+            oc image mirror \
+              image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/frontend-web:$(params.FRONTEND_IMAGE_TAG) \
+              image-registry.openshift-image-registry.svc:5000/with-vault-app-prod/frontend-web:$(params.FRONTEND_IMAGE_TAG) \
+              --insecure=true
+
+    # --------------------------------------------------------
+    # STEP 2: UPDATE VALUES-PROD.YAML IN HELM REPO
+    # --------------------------------------------------------
+    - name: update-prod-helm-values
+      runAfter:
+        - promote-backend-image
+        - promote-frontend-image
+      taskRef:
+        kind: Task
+        name: update-helm-git
+      params:
+        - name: HELM_REPO_URL
+          value: $(params.HELM_REPO_URL)
+        - name: TARGET_ENV_FILE
+          value: "values-prod.yaml"
+        - name: BACKEND_IMAGE_TAG
+          value: $(params.BACKEND_IMAGE_TAG)
+        - name: FRONTEND_IMAGE_TAG
+          value: $(params.FRONTEND_IMAGE_TAG)
+      workspaces:
+        - name: source
+          workspace: source-workspace
+          subPath: helm-prod
+        - name: git-credentials
+          workspace: git-credentials

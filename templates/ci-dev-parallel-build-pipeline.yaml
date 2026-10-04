@@ -1,0 +1,187 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: build-and-deploy-dev
+spec:
+  params:
+    - name: BACKEND_REPO_URL
+      type: string
+    - name: FRONTEND_REPO_URL
+      type: string
+    - name: HELM_REPO_URL
+      type: string
+    - name: REPO_BRANCH
+      type: string
+      default: "main"
+    - name: SONAR_HOST_URL
+      type: string
+      default: "https://sonar.apps.c1.ucmc.org"
+    - name: SONAR_AUTH_TOKEN_SECRET_NAME
+      type: string
+      default: "sonarqube-token"
+    - name: TRIVY_EXIT_CODE
+      type: string
+      default: "0"
+  workspaces:
+    - name: source-workspace
+    - name: git-credentials
+  tasks:
+    # --------------------------------------------------------
+    # BACKEND BUILD & SCAN BRANCH
+    # --------------------------------------------------------
+    - name: fetch-backend-source
+      taskRef:
+        kind: Task
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.BACKEND_REPO_URL)
+        - name: revision
+          value: $(params.REPO_BRANCH)
+      workspaces:
+        - name: output
+          workspace: source-workspace
+          subPath: backend
+
+    - name: scan-backend-code
+      runAfter:
+        - fetch-backend-source
+      taskRef:
+        kind: Task
+        name: scan-code
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.SONAR_HOST_URL)
+        - name: SONAR_PROJECT_KEY
+          value: "3tier-app-backend"
+        - name: SONAR_AUTH_TOKEN
+          value: $(params.SONAR_AUTH_TOKEN_SECRET_NAME)
+        - name: PATH_CONTEXT
+          value: "."
+      workspaces:
+        - name: repository
+          workspace: source-workspace
+          subPath: backend
+
+    - name: buildah-backend
+      runAfter:
+        - scan-backend-code
+      taskRef:
+        kind: Task
+        name: buildah
+      params:
+        - name: IMAGE
+          value: "image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/backend-api:$(tasks.fetch-backend-source.results.commit)"
+        - name: TLSVERIFY
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: source-workspace
+          subPath: backend
+
+    - name: scan-backend-image
+      runAfter:
+        - buildah-backend
+      taskRef:
+        kind: Task
+        name: trivy-scan
+      params:
+        - name: IMAGE_URL
+          value: "image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/backend-api:$(tasks.fetch-backend-source.results.commit)"
+        - name: SEVERITY
+          value: "HIGH,CRITICAL"
+        - name: EXIT_CODE
+          value: $(params.TRIVY_EXIT_CODE)
+
+    # --------------------------------------------------------
+    # FRONTEND BUILD & SCAN BRANCH
+    # --------------------------------------------------------
+    - name: fetch-frontend-source
+      taskRef:
+        kind: Task
+        name: git-clone
+      params:
+        - name: url
+          value: $(params.FRONTEND_REPO_URL)
+        - name: revision
+          value: $(params.REPO_BRANCH)
+      workspaces:
+        - name: output
+          workspace: source-workspace
+          subPath: frontend
+
+    - name: scan-frontend-code
+      runAfter:
+        - fetch-frontend-source
+      taskRef:
+        kind: Task
+        name: scan-code
+      params:
+        - name: SONAR_HOST_URL
+          value: $(params.SONAR_HOST_URL)
+        - name: SONAR_PROJECT_KEY
+          value: "3tier-app-frontend"
+        - name: SONAR_AUTH_TOKEN
+          value: $(params.SONAR_AUTH_TOKEN_SECRET_NAME)
+        - name: PATH_CONTEXT
+          value: "."
+      workspaces:
+        - name: repository
+          workspace: source-workspace
+          subPath: frontend
+
+    - name: buildah-frontend
+      runAfter:
+        - scan-frontend-code
+      taskRef:
+        kind: Task
+        name: buildah
+      params:
+        - name: IMAGE
+          value: "image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/frontend-web:$(tasks.fetch-frontend-source.results.commit)"
+        - name: TLSVERIFY
+          value: "false"
+      workspaces:
+        - name: source
+          workspace: source-workspace
+          subPath: frontend
+
+    - name: scan-frontend-image
+      runAfter:
+        - buildah-frontend
+      taskRef:
+        kind: Task
+        name: trivy-scan
+      params:
+        - name: IMAGE_URL
+          value: "image-registry.openshift-image-registry.svc:5000/with-vault-app-dev/frontend-web:$(tasks.fetch-frontend-source.results.commit)"
+        - name: SEVERITY
+          value: "HIGH,CRITICAL"
+        - name: EXIT_CODE
+          value: $(params.TRIVY_EXIT_CODE)
+
+    # --------------------------------------------------------
+    # GITOPS UPDATE TASK (Runs after both Trivy scans pass)
+    # --------------------------------------------------------
+    - name: update-dev-helm-values
+      runAfter:
+        - scan-backend-image
+        - scan-frontend-image
+      taskRef:
+        kind: Task
+        name: update-helm-git
+      params:
+        - name: HELM_REPO_URL
+          value: $(params.HELM_REPO_URL)
+        - name: TARGET_ENV_FILE
+          value: "values-dev.yaml"
+        - name: BACKEND_IMAGE_TAG
+          value: $(tasks.fetch-backend-source.results.commit)
+        - name: FRONTEND_IMAGE_TAG
+          value: $(tasks.fetch-frontend-source.results.commit)
+      workspaces:
+        - name: source
+          workspace: source-workspace
+          subPath: helm
+        - name: git-credentials
+          workspace: git-credentials

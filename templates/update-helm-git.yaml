@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: update-helm-git
+spec:
+  params:
+    - name: HELM_REPO_URL
+      type: string
+      description: "URL of the Helm chart GitOps repository"
+    - name: TARGET_ENV_FILE
+      type: string
+      default: "values-dev.yaml"
+      description: "Target Helm values file to update"
+    - name: BACKEND_IMAGE_TAG
+      type: string
+      description: "Git commit SHA for the backend container image"
+    - name: FRONTEND_IMAGE_TAG
+      type: string
+      description: "Git commit SHA for the frontend container image"
+  workspaces:
+    - name: source
+    - name: git-credentials
+  steps:
+    - name: update-and-push
+      # image: image-registry.openshift-image-registry.svc:5000/openshift/cli:latest
+      # openshift-cli image does not have git cli installed
+      image: alpine/git:latest
+      script: |
+        #!/bin/sh
+        set -e
+
+        GIT_USER=$(cat /workspace/git-credentials/username)
+        GIT_PASS=$(cat /workspace/git-credentials/password)
+
+        git config --global user.name "Tekton Pipeline"
+        git config --global user.email "tekton@openshift.local"
+
+        # Embed credentials for all github.com requests (clone & push)
+        git config --global url."https://${GIT_USER}:${GIT_PASS}@github.com/".insteadOf "https://github.com/"
+
+        # Clone Helm chart repository
+        rm -rf helm-repo
+        git clone "$(params.HELM_REPO_URL)" helm-repo
+        cd helm-repo
+
+        # Install yq if not present
+        if ! command -v yq >/dev/null 2>&1; then
+          wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
+          chmod +x /usr/bin/yq
+        fi
+
+        echo "Updating values in $(params.TARGET_ENV_FILE)..."
+        # Update both backend and frontend image tags in values-dev.yaml
+        yq eval ".backend.image.tag = \"$(params.BACKEND_IMAGE_TAG)\" | .frontend.image.tag = \"$(params.FRONTEND_IMAGE_TAG)\"" -i "$(params.TARGET_ENV_FILE)"
+
+        # Check if changes exist before committing
+        if git diff --quiet "$(params.TARGET_ENV_FILE)"; then
+          echo "No image tag changes detected in $(params.TARGET_ENV_FILE). Skipping commit."
+        else
+          echo "Changes detected. Committing and pushing to GitOps repository..."
+          git add "$(params.TARGET_ENV_FILE)"
+          git commit -m "ci(helm): update backend ($(params.BACKEND_IMAGE_TAG)) and frontend ($(params.FRONTEND_IMAGE_TAG)) image tags [skip ci]"
+          git push origin main
+        fi

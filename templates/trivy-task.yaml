@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: trivy-scan
+spec:
+  description: Scans a container image for vulnerabilities using Trivy.
+  params:
+    - name: IMAGE_URL
+      type: string
+      description: Target image reference to scan (e.g., image-registry.openshift-image-registry.svc:5000/my-namespace/my-app:latest)
+    - name: TRIVY_IMAGE
+      type: string
+      default: "aquasec/trivy:latest"
+      description: Trivy CLI container image to execute
+    - name: SEVERITY
+      type: string
+      default: "HIGH,CRITICAL"
+      description: Severity levels to flag (e.g., LOW,MEDIUM,HIGH,CRITICAL)
+    - name: EXIT_CODE
+      type: string
+      default: "0"
+      description: Set to '1' to fail the task if vulnerabilities matching SEVERITY are found
+  workspaces:
+    - name: manifest-dir
+      optional: true
+  steps:
+    - name: scan-image
+      image: $(params.TRIVY_IMAGE)
+      script: |
+        #!/bin/sh
+        echo "Starting Trivy vulnerability scan for image: $(params.IMAGE_URL)"
+
+        trivy image \
+          --exit-code $(params.EXIT_CODE) \
+          --severity $(params.SEVERITY) \
+          --no-progress \
+          $(params.IMAGE_URL)
+

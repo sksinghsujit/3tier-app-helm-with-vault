@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: scan-code
+spec:
+  description: Source code static analysis using sonar-scanner and SonarQube.
+  workspaces:
+    - name: repository
+      description: The cloned git repository source code directory.
+  params:
+    - name: SONAR_SCAN_IMAGE
+      type: string
+      default: 'default-route-openshift-image-registry.apps.c1.ucmc.org/openshift/sonar-scanner-cli:latest'
+    - name: SONAR_HOST_URL
+      type: string
+      default: 'https://sonar.apps.c1.ucmc.org'
+    - name: SONAR_PROJECT_KEY
+      type: string
+      default: 'first-production'
+    - name: SONAR_AUTH_TOKEN
+      type: string
+      default: 'sonarqube-token'
+    - name: PATH_CONTEXT
+      type: string
+      default: '.'
+  steps:
+    - name: sonar-scan
+      image: $(params.SONAR_SCAN_IMAGE)
+      workingDir: $(workspaces.repository.path)
+      env:
+        - name: SONAR_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(params.SONAR_AUTH_TOKEN)
+              key: token
+        # Tell Node.js (SonarScanner 8.x) to trust your mounted CA
+        - name: NODE_EXTRA_CA_CERTS
+          value: /etc/ssl/certs/custom-ca.crt
+      volumeMounts:
+        - name: ca-bundle-vol
+          mountPath: /etc/ssl/certs/custom-ca.crt
+          subPath: custom-ca.crt
+      script: |
+        #!/bin/sh
+        set -e
+
+        echo "Starting SonarScanner code analysis with custom CA..."
+
+        sonar-scanner \
+          -Dsonar.host.url="$(params.SONAR_HOST_URL)" \
+          -Dsonar.projectKey="$(params.SONAR_PROJECT_KEY)" \
+          -Dsonar.sources="$(params.PATH_CONTEXT)" \
+          -Dsonar.token="$SONAR_TOKEN"
+  volumes:
+    - name: ca-bundle-vol
+      configMap:
+        name: custom-ca-bundle
