@@ -14,23 +14,11 @@ metadata:
     tekton.dev/pipelines.minVersion: 0.17.0
     tekton.dev/source: https://github.com/openshift-pipelines/task-openshift
     tekton.dev/tags: cli
-  creationTimestamp: "2026-09-30T12:54:30Z"
-  generation: 1
   labels:
     app.kubernetes.io/version: 0.3.0
     operator.tekton.dev/operand-name: openshift-pipelines-addons
     operator.tekton.dev/provider-type: redhat
   name: openshift-client
-  namespace: with-vault-app-dev
-  #ownerReferences:
-  #- apiVersion: operator.tekton.dev/v1alpha1
-  #  blockOwnerDeletion: true
-  #  controller: true
-  #  kind: TektonInstallerSet
-  #  name: addon-custom-resolvertask-c7cp7
-  #  uid: 40502ef9-f384-447a-ad34-a4e6d6df7128
-  #resourceVersion: "11463058"
-  #uid: c9cb302d-bb2c-488a-b165-34af9454aae5
 spec:
   description: |-
     This task runs commands against the cluster provided by user and if not provided then where the Task is being executed.

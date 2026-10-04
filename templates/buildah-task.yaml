@@ -10,13 +10,9 @@ metadata:
     tekton.dev/pipelines.minVersion: 0.50.0
     tekton.dev/platforms: linux/amd64,linux/s390x,linux/ppc64le,linux/arm64
     tekton.dev/tags: image-build
-  creationTimestamp: "2026-09-30T15:55:44Z"
-  generation: 1
   labels:
     app.kubernetes.io/version: "0.8"
   name: buildah
-  resourceVersion: "11663229"
-  uid: 61517176-70bc-4a20-b75c-3540e8996c69
 spec:
   description: |-
     Buildah task builds source into a container image and then pushes it to a container registry.

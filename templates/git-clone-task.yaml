@@ -10,13 +10,9 @@ metadata:
     tekton.dev/pipelines.minVersion: 0.38.0
     tekton.dev/platforms: linux/amd64,linux/s390x,linux/ppc64le,linux/arm64
     tekton.dev/tags: git
-  creationTimestamp: "2026-09-30T15:55:38Z"
-  generation: 1
   labels:
     app.kubernetes.io/version: "0.9"
   name: git-clone
-  resourceVersion: "13172366"
-  uid: 5a4a4018-cc7e-4aa0-ae3f-0fe920c4b63b
 spec:
   description: |-
     These Tasks are Git tasks to work with repositories used by other tasks in your Pipeline.
